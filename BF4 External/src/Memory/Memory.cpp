@@ -102,11 +102,38 @@ bool Memory::ReadAddressRaw(uintptr_t address, void* buffer, SIZE_T size)
 	return false;
 }
 
+std::string Memory::ReadUnicodeString(uintptr_t unity_str_address)
+{
+	const int size = 50;
+
+	wchar_t wide_char_buffer[size] = {};
+	char char_buffer[size] = {};
+
+	this->ReadAddressRaw(unity_str_address, wide_char_buffer, sizeof(wchar_t) * size);
+
+	WideCharToMultiByte(CP_UTF8, 0, wide_char_buffer, size, char_buffer, size, 0, 0);
+
+	return std::string(char_buffer);
+}
+
+std::string convertToString(char* a, int size)
+{
+	int i;
+	std::string s = "";
+	for (i = 0; i < size; i++) {
+		s = s + a[i];
+	}
+	return s;
+}
+
 std::string Memory::ReadString(uintptr_t address)
 {
-	char buffer[64];
+	char buffer[20];
 	this->ReadAddressRaw(address, &buffer, sizeof(buffer));
-	return std::string(buffer);
+
+	std::string ret = std::string(buffer);
+
+	return ret;
 }
 
 

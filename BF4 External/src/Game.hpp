@@ -1,6 +1,8 @@
 #pragma once
 #include <Windows.h>
 #include <d3dx9math.h>
+#include "Memory/Memory.hpp"
+#include <string>
 
 struct player_t
 {
@@ -49,3 +51,47 @@ enum Bones
 	LEFTFOOT = 184,
 	RIGHTFOOT = 198
 };
+
+
+
+namespace Functions
+{
+	inline std::string GetSoldiersWeapon(uintptr_t soldier)
+	{
+		uintptr_t weapon_component = M.Read<uintptr_t>(soldier + 0x0570);
+
+		if (!weapon_component)
+			return "";
+
+		uintptr_t weapon_handle = M.Read<uintptr_t>(weapon_component + 0x0890);
+		uint32_t active_slot = M.Read<uint32_t>(weapon_handle + 0x0A98);
+
+		if (weapon_handle)
+		{
+			uintptr_t soldier_weapon = M.Read<uintptr_t>(weapon_handle + active_slot * 0x8);
+
+			if (!soldier_weapon)
+				return "";
+
+			uintptr_t weapon_data = M.Read<uintptr_t>(soldier_weapon + 0x0030);
+			if (!weapon_data)
+				return "";
+
+			//uintptr_t weapon_name_ptr = M.Read<uintptr_t>(weapon_data + 0x0130);
+			std::string restult = M.ReadString(weapon_data + 0x0130);
+			return restult;
+
+		}
+
+		else
+			return "";
+		
+	}
+
+	inline std::string GetPlayersName(uintptr_t player)
+	{
+		std::string name = M.ReadString(player + 0x40);
+
+		return name;
+	}
+}

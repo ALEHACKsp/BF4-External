@@ -32,6 +32,14 @@ public:
 
 	bool ReadAddressRaw(uintptr_t address, void* buffer, SIZE_T size);
 
+	std::string ReadUnicodeString(uintptr_t unity_str_address);
+
+	std::string ReadString(uintptr_t address, const unsigned int size);
+
+	std::string ReadString(uintptr_t address, int size);
+
+	std::string ReadString(uintptr_t address, char buffer[]);
+
 	std::string ReadString(uintptr_t address);
 
 	std::wstring StringToWString(const std::string& s);
