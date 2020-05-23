@@ -56,6 +56,7 @@ namespace Math
 
 		return true;
 	}
+
 	inline bool WorldToScreen(const D3DXVECTOR3& world_point, D3DXVECTOR3& out)
 	{
 		uintptr_t GameRenderer = M.Read<uintptr_t>(Offsets::GAMERENDERER);

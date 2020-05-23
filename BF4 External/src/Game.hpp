@@ -6,13 +6,23 @@
 
 struct player_t
 {
-	D3DXVECTOR3 player_position;
+	uintptr_t current_player;
+	uintptr_t current_soldier;
+	D3DXVECTOR3 player_origin;
+	D3DXVECTOR3 player_head;
 	bool is_visible;
 	bool is_team;
-	//float health;
-	//std::string name;
-	//std::vector<D3DXVECTOR3> bones;
+	float health;
+	std::string name;
+	std::string held_weapon;
+};
 
+struct game_t
+{
+	uintptr_t client_game_context;
+	uintptr_t player_manager;
+	uintptr_t local_player;
+	uintptr_t players;
 };
 
 namespace Offsets
@@ -54,7 +64,7 @@ enum Bones
 
 
 
-namespace Functions
+namespace PlayerStuff
 {
 	inline std::string GetSoldiersWeapon(uintptr_t soldier)
 	{
@@ -64,7 +74,7 @@ namespace Functions
 			return "";
 
 		uintptr_t weapon_handle = M.Read<uintptr_t>(weapon_component + 0x0890);
-		uint32_t active_slot = M.Read<uint32_t>(weapon_handle + 0x0A98);
+		uint32_t active_slot = M.Read<uint32_t>(weapon_component + 0x0A98);
 
 		if (weapon_handle)
 		{
@@ -74,11 +84,14 @@ namespace Functions
 				return "";
 
 			uintptr_t weapon_data = M.Read<uintptr_t>(soldier_weapon + 0x0030);
+
 			if (!weapon_data)
 				return "";
 
+			uintptr_t weapon = M.Read<uintptr_t>(weapon_data + 0x0130);
+
 			//uintptr_t weapon_name_ptr = M.Read<uintptr_t>(weapon_data + 0x0130);
-			std::string restult = M.ReadString(weapon_data + 0x0130);
+			std::string restult = M.ReadString(weapon);
 			return restult;
 
 		}
@@ -94,4 +107,11 @@ namespace Functions
 
 		return name;
 	}
+
+	constexpr std::array<std::array<Bones, 2>, 12> bone_list =
+	{
+		{{HEAD, NECK}, {NECK, LEFTSHOULDER}, {LEFTSHOULDER, LEFTELBOWROLL}, {LEFTELBOWROLL, LEFTHAND},
+		{NECK, RIGHTSHOULDER}, {RIGHTSHOULDER, RIGHTELBOWROLL}, {RIGHTELBOWROLL, RIGHTHAND}, { NECK, SPINE},
+		{SPINE, LEFTKNEEROLL}, {SPINE, RIGHTKNEEROLL}, {LEFTKNEEROLL, LEFTFOOT}, {RIGHTKNEEROLL, RIGHTFOOT}}
+	};
 }

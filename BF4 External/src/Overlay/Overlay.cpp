@@ -295,10 +295,10 @@ void Direct2DOverlay::DrawBoxWithString(std::wstring str, bool screen_lock, D3DX
 			text_data = D3DXVECTOR2(TextInfo.width / 2.0f, TextInfo.height / 2.0f);
 
 			this->solid_brush->SetColor(D2D1::ColorF(colour_of_box.r / 255, colour_of_box.g / 255, colour_of_box.b / 255, colour_of_box.a / 255));                    //set box colour
-			this->target->FillRectangle(D2D1::RectF(pos.x - text_data.x - 3, pos.y - text_data.y + 2, pos.x + text_data.x, pos.y + text_data.y), this->solid_brush);      //draw box
+			this->target->FillRectangle(D2D1::RectF(pos.x - text_data.x - 2, pos.y - text_data.y + 2, pos.x + text_data.x, pos.y + text_data.y), this->solid_brush);      //draw box
 
 			this->solid_brush->SetColor(D2D1::ColorF(colour_of_text.r, colour_of_text.g, colour_of_text.b, colour_of_text.a));                                        //set text colour
-			this->target->DrawTextLayout(D2D1::Point2F(pos.x - text_data.x, pos.y - text_data.y), this->w_layout, this->solid_brush, D2D1_DRAW_TEXT_OPTIONS_NO_SNAP); //draw text
+			this->target->DrawTextLayout(D2D1::Point2F(pos.x - text_data.x - 1, pos.y - text_data.y), this->w_layout, this->solid_brush, D2D1_DRAW_TEXT_OPTIONS_NO_SNAP); //draw text
 
 			this->w_layout->Release();
 			this->w_layout = NULL;

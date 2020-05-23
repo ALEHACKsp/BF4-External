@@ -9,43 +9,43 @@
 #include "Overlay/Overlay.hpp"
 #include "Cheat/Renderer.hpp"
 
-Cheat C;
+
 HINSTANCE hinstance = GetModuleHandle(NULL);
 
 void RenderUpdate()
 {
-	while (true)
+	Direct2DOverlay* over = new Direct2DOverlay(hinstance, Renderer::RenderLoop);
+	while ( 1 )
 	{
-		Direct2DOverlay* over = new Direct2DOverlay(hinstance, Renderer::RenderLoop);
 		over->Initialize(M.process_id, "External");
 		over->StartLoop();
 		Sleep(1);
 	}
 }
 
-void ESPUpdate()
+void Update()
 {
 	while (1)
 	{
-		C.Init();
+		Renderer::Update();
 		Sleep(1);
 	}
 }
+
 void Initialize()
 {
 	M.Attach();
+	Renderer::ConnectedToServer();
+	Direct2DOverlay* over = new Direct2DOverlay(hinstance, Renderer::RenderLoop);
 
-	std::thread render_thread(RenderUpdate);
-	//std::thread esp_thread(ESPUpdate);
-
-
-	render_thread.join();
-	//esp_thread.join();
-
+	std::thread update_thread(Update);
+	over->Initialize(M.process_id, "External");
+	over->StartLoop();
+	
+	update_thread.join();
 }
 
 int main()
 {
 	Initialize();
-	
 }  

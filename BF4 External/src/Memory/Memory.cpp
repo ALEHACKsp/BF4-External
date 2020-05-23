@@ -128,7 +128,7 @@ std::string convertToString(char* a, int size)
 
 std::string Memory::ReadString(uintptr_t address)
 {
-	char buffer[20];
+	char buffer[32];
 	this->ReadAddressRaw(address, &buffer, sizeof(buffer));
 
 	std::string ret = std::string(buffer);

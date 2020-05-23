@@ -173,6 +173,9 @@
     <ClInclude Include="src\Game.hpp" />
     <ClInclude Include="src\Overlay\Overlay.hpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="src\info.cs" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
