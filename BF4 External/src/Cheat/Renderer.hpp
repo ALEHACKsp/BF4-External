@@ -10,7 +10,7 @@ namespace Renderer
 {
 	inline Direct2DOverlay* overlay;
 	inline bool in_server = false;
-	inline std::map<uintptr_t, player_t> player_list;
+	inline std::unordered_map<uintptr_t, player_t> player_list;
 	inline std::vector<uintptr_t> dead_list;
 	inline game_t G;
 	extern bool ConnectedToServer();
