@@ -5,29 +5,11 @@
 #include "../Misc/Logger.hpp"
 #include <unordered_map>
 #include <mutex>
+#include "../Memory/Shellcode.hpp"
+
+#define M_PI 3.14159265358979323846
 
 std::mutex render_mutex;
-
-bool Renderer::ConnectedToServer()
-{
-	G.client_game_context = M.Read<uintptr_t>(Offsets::CLIENTGAMECONTEXT);
-
-	if (!G.client_game_context)
-		return false;
-
-	G.player_manager = M.Read<uintptr_t>(G.client_game_context + Offsets::PLAYER_MANAGER);
-
-	if (!G.player_manager)
-		return false;
-
-	G.local_player = M.Read<uintptr_t>(G.player_manager + Offsets::LOCAL_PLAYER_ARRAY);
-
-	if (!G.local_player)
-		return false;
-
-	in_server = true;
-	return true;
-}
 
 void Renderer::RenderBones(uintptr_t soldier, D2D1::ColorF colour)
 {
@@ -43,20 +25,117 @@ void Renderer::RenderBones(uintptr_t soldier, D2D1::ColorF colour)
 		}
 }
 
+D3DXVECTOR2 RotatePoint(D3DXVECTOR2 pointToRotate, D3DXVECTOR2 centerPoint, float angle, bool angleInRadians = true)
+{
+	if (!angleInRadians)
+		angle = (float)(angle * (M_PI / 180.0f));
+
+	float cosTheta = (float)std::cos(angle);
+	float sinTheta = (float)std::sin(angle);
+
+	D3DXVECTOR2 returnVec = D3DXVECTOR2(
+		cosTheta * (pointToRotate.x - centerPoint.x) - sinTheta * (pointToRotate.y - centerPoint.y),
+		sinTheta * (pointToRotate.x - centerPoint.x) + cosTheta * (pointToRotate.y - centerPoint.y)
+	);
+
+	returnVec += centerPoint;
+	return returnVec;
+}
+
+float DegToRad(float deg) { return (float)(deg * (M_PI / 180.0f)); }
+float RadToDeg(float deg) { return (float)(deg * (180.0f / M_PI)); }
+
+D3DXVECTOR2 Renderer::ConvertToRadar(player_t player)
+{
+	D3DXVECTOR2 center = {(radar_size.x + radar_size.y) / 2, (radar_size.x + radar_size.y) / 2 };
+
+	D3DXVECTOR2 enemy_pos_2d = { player.origin.x, player.origin.z };
+	D3DXVECTOR2 local_pos_2d = { G.local_player.origin.x, G.local_player.origin.z };
+
+
+	D3DXVECTOR2 screen_pos = local_pos_2d - enemy_pos_2d;
+
+	float distance = D3DXVec2Length(&screen_pos) * radar_distance;
+
+	D3DXVECTOR2 normalized_screen_pos;
+	D3DXVec2Normalize(&normalized_screen_pos, &screen_pos);
+
+
+	normalized_screen_pos *= distance;
+
+	normalized_screen_pos += center;
+
+
+
+	return RotatePoint(normalized_screen_pos, center, G.local_player.view_angles.y + 90, false);
+}
+
+void Renderer::DrawPlayer(player_t player)
+{
+	int FOV = 105;
+	D3DXVECTOR2 screen_pos = ConvertToRadar(player);
+
+	if (G.local_player.health <= 0.01f)
+		return;
+
+	//overlay->DrawLine({ (radar_size.x + radar_size.y) / 2, (radar_size.x + radar_size.y) / 2 }, {  }, 1, { 0, 255, 0, 255 });
+	overlay->DrawCircle({ screen_pos.x, screen_pos.y }, 2, 2, { 255, 0, 0, 255 }, 1);
+
+}
+
+void Renderer::DrawLocalPlayer()
+{
+
+	overlay->DrawCircle({ (radar_size.x + radar_size.y) / 2, (radar_size.x + radar_size.y) / 2 }, 1.5f, 1, { 0, 255, 0, 255 }, true);
+
+}
+
+void Renderer::DrawLocalRadar()
+{
+	overlay->DrawBox({ radar_size.x, radar_size.x }, { radar_size.y, radar_size.y }, 1, { 0, 0, 0, 120 }, true);
+	overlay->DrawBox({ radar_size.x - 1, radar_size.x + 1 }, { radar_size.y - 1, radar_size.y + 1 }, 1, { 255, 0, 0, 255 }, false);
+
+}
+
 void Renderer::Update()
 {
+	G.client_game_context = M.Read<uintptr_t>(Offsets::CLIENTGAMECONTEXT);
+
+	if (!G.client_game_context)
+		return;
+
+	G.player_manager = M.Read<uintptr_t>(G.client_game_context + Offsets::PLAYER_MANAGER);
+
+	if (!G.player_manager)
+		return;
+
+	uintptr_t local_player_ptr = M.Read<uintptr_t>(G.player_manager + Offsets::LOCAL_PLAYER_ARRAY);
+
+	if (!local_player_ptr)
+		return;
+
 	uintptr_t players = M.Read<uintptr_t>(G.player_manager + Offsets::PUBLIC_PLAYER_ARRAY);
 
 	render_mutex.lock();
 
-	for (unsigned int idx = 0; idx < 64; ++idx)
+	for (unsigned int idx = 0; idx <= 64; ++idx)
 	{
 		uintptr_t current_player = M.Read<uintptr_t>(players + (idx * 0x8));
 
-		if (!current_player || current_player == G.local_player)
+		if (!current_player)
 			continue;
 
-		uint64_t local_team_id = M.Read<uint64_t>(G.local_player + Offsets::TEAM_ID);
+		uintptr_t local_soldier = M.Read<uintptr_t>(local_player_ptr + Offsets::SOILDER);
+
+		float yaw = M.Read<float>(local_soldier + 0x04D8);
+		float pitch = M.Read<float>(local_soldier + 0x04DC);
+		//Logger::Print(" YAW %f, PITCH %f ", yaw, pitch);
+
+		uintptr_t comp_local = M.Read<uintptr_t>(local_soldier + 0x0140);
+
+		float health_local = M.Read<float>(comp_local + 0x0020);
+
+		uint64_t local_team_id = M.Read<uint64_t>(local_player_ptr + Offsets::TEAM_ID);
 		uint64_t player_team_id = M.Read<uint64_t>(current_player + Offsets::TEAM_ID);
 
 		bool is_team = local_team_id == player_team_id;
@@ -64,6 +143,8 @@ void Renderer::Update()
 		uintptr_t current_soldier = M.Read<uintptr_t>(current_player + Offsets::SOILDER);
 
 		D3DXVECTOR3 player_origin = M.Read<D3DXVECTOR3>(M.Read<uintptr_t>(current_soldier + 0x490) + 0x30);
+
+		D3DXVECTOR3 local_player_origin = M.Read<D3DXVECTOR3>(M.Read<uintptr_t>(local_soldier + 0x490) + 0x30);
 
 		D3DXVECTOR3 player_head = Math::GetBone(current_soldier, HEAD);
 
@@ -84,11 +165,31 @@ void Renderer::Update()
 			player_list.insert_or_assign(current_player, pinsert);
 		}
 
+		G.local_player.health = health_local;
+		G.local_player.origin = local_player_origin;
+		G.local_player.view_angles = D3DXVECTOR2(pitch, yaw);
+		G.local_player.player = local_player_ptr;
+
 		continue;
 	}
 
 	render_mutex.unlock();
 
+}
+
+bool Renderer::BitBlt()
+{
+	Shellcode shell;
+	shell.push_back({ 0x68 }); shell.push_back(M.module_address + 0x22b0);
+	shell.push_back({ 0x48, 0xC7, 0xC0, 0x00, 0x00, 0x00, 0x00, 0xC3 });
+
+	uintptr_t alloc_code = reinterpret_cast<uintptr_t>(VirtualAllocEx(M.BF4_HANDLE, 0, shell.shellcode.size(), MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE));
+
+	if (!alloc_code)
+		return false;
+
+	if (M.ReadAddressRaw(alloc_code, shell.shellcode.data(), shell.shellcode.size()))
+		return true;
 }
 
 void Renderer::RenderLoop(Direct2DOverlay * o)
@@ -101,28 +202,37 @@ void Renderer::RenderLoop(Direct2DOverlay * o)
 	const RECT overlayer_rect = overlay->GetOverlayRect();
 
 	overlay->DrawString(L"aura#0240", 11, { 13.0, 4.0 }, ESP_FONT, FONT_RIGHT, { 255, 255, 255, 255 });
-
-
+	
 	if (in_server)
 	{
+
 		uintptr_t players = M.Read<uintptr_t>(G.player_manager + Offsets::PUBLIC_PLAYER_ARRAY);
+		/* Draw Radar */
+		//DrawLocalRadar();
+
+		/* draw local*/
+		//DrawLocalPlayer();
 
 		render_mutex.lock();
 		for (auto [ptr, player] : player_list)
 		{
-			if (player.current_player == G.local_player || !player.current_player || !player.current_soldier)
+
+			if (player.player == G.local_player.player || !player.player || !player.soldier || !ptr || player.held_weapon == "" || player.name == "")
 				continue;
 
-			if (player.health <= 0.1f || player.is_team)
+			if (player.health <= 0.01f || player.is_team)
 				continue;
+
+			/* draw players*/
+			//DrawPlayer(player);
 
 			D3DXVECTOR3 origin_screen, head_screen;
 
-			if (!Math::WorldToScreenNew(&player.player_origin, &origin_screen) && !Math::WorldToScreenNew(&Math::GetBone(player.current_soldier, HEAD), &head_screen))
+			if (!Math::WorldToScreenNew(&player.origin, &origin_screen) && !Math::WorldToScreenNew(&Math::GetBone(player.soldier, HEAD), &head_screen))
 				continue;
 
-			float green = player.health * 2.90f;
-			float red = 255 - green;
+			float red = 255 - (player.health * 2.55f);
+			float green = (player.health * 2.55f);
 
 			D2D1::ColorF render_colour = player.is_visible ? D2D1::ColorF(255, 0, 0, 255) : D2D1::ColorF(255, 255, 255, 255);
 			
@@ -131,13 +241,16 @@ void Renderer::RenderLoop(Direct2DOverlay * o)
 			ss << player.name << " [" << player.held_weapon << "]";
 			overlay->DrawBoxWithString(M.StringToWString(ss.str()), 0, { origin_screen.x , origin_screen.y + 8 }, 7, { 255, 255, 255,255 }, ESP_FONT, { 12, 12, 12, 255 });
 			overlay->DrawBoxWithString(std::to_wstring(static_cast<int>(player.health)), 0, { origin_screen.x + 2, origin_screen.y + 19 }, 6, { red, green, 0, 255 }, ESP_FONT, { 12, 12, 12, 255 });
-
-			RenderBones(player.current_soldier, render_colour);
+			
+			RenderBones(player.soldier, render_colour);
 		}
 
 	}
 	render_mutex.unlock();
-	
+
+	overlay->EndDraw();
+	Sleep(1);
+}
 	//
 	//if (Math::WorldToScreenNew(&player_origin, &origin_screen) && Math::WorldToScreenNew(&Math::GetBone(soldier, HEAD), &head_screen))
 	//{
@@ -173,9 +286,7 @@ void Renderer::RenderLoop(Direct2DOverlay * o)
 	//}
 
 	//
-	overlay->EndDraw();
-	Sleep(1);
-}
+
 
 
 

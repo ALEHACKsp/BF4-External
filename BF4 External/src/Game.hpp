@@ -6,10 +6,10 @@
 
 struct player_t
 {
-	uintptr_t current_player;
-	uintptr_t current_soldier;
-	D3DXVECTOR3 player_origin;
-	D3DXVECTOR3 player_head;
+	uintptr_t player;
+	uintptr_t soldier;
+	D3DXVECTOR3 origin;
+	D3DXVECTOR3 head;
 	bool is_visible;
 	bool is_team;
 	float health;
@@ -17,12 +17,22 @@ struct player_t
 	std::string held_weapon;
 };
 
+struct localplayer_t
+{
+	uintptr_t player;
+	D3DXVECTOR3 origin;
+	D3DXVECTOR2 view_angles;
+	float health;
+};
+
+
+
 struct game_t
 {
 	uintptr_t client_game_context;
 	uintptr_t player_manager;
-	uintptr_t local_player;
 	uintptr_t players;
+	localplayer_t local_player;
 };
 
 namespace Offsets
@@ -93,9 +103,7 @@ namespace PlayerStuff
 			//uintptr_t weapon_name_ptr = M.Read<uintptr_t>(weapon_data + 0x0130);
 			std::string restult = M.ReadString(weapon);
 			return restult;
-
 		}
-
 		else
 			return "";
 		

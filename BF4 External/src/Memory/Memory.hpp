@@ -14,10 +14,8 @@
 
 class Memory
 {
-private:
-	HANDLE BF4_HANDLE = NULL;
-
 public:
+	HANDLE BF4_HANDLE = NULL;
 	unsigned int process_id = 0;
 	uintptr_t module_address = 0x0;
 	~Memory();

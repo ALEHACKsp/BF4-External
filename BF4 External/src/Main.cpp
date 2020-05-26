@@ -9,19 +9,7 @@
 #include "Overlay/Overlay.hpp"
 #include "Cheat/Renderer.hpp"
 
-
 HINSTANCE hinstance = GetModuleHandle(NULL);
-
-void RenderUpdate()
-{
-	Direct2DOverlay* over = new Direct2DOverlay(hinstance, Renderer::RenderLoop);
-	while ( 1 )
-	{
-		over->Initialize(M.process_id, "External");
-		over->StartLoop();
-		Sleep(1);
-	}
-}
 
 void Update()
 {
@@ -32,20 +20,28 @@ void Update()
 	}
 }
 
-void Initialize()
-{
-	M.Attach();
-	Renderer::ConnectedToServer();
-	Direct2DOverlay* over = new Direct2DOverlay(hinstance, Renderer::RenderLoop);
 
-	std::thread update_thread(Update);
-	over->Initialize(M.process_id, "External");
-	over->StartLoop();
-	
-	update_thread.join();
+void ForceFalse()
+{
+	while (1)
+	{
+		if (Renderer::BitBlt());
+		printf("1 \n");
+		Sleep(150);
+	}
 }
 
 int main()
 {
-	Initialize();
+	M.Attach();
+	Direct2DOverlay* over = new Direct2DOverlay(hinstance, Renderer::RenderLoop);
+
+	std::thread update_thread(Update);
+	std::thread force_false(ForceFalse);
+
+	over->Initialize(M.process_id, "External");
+	over->StartLoop();
+
+	update_thread.join();
+	force_false.join();
 }  

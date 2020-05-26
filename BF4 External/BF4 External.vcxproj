@@ -169,6 +169,7 @@
     <ClInclude Include="src\Cheat\Renderer.hpp" />
     <ClInclude Include="src\Math\Math.hpp" />
     <ClInclude Include="src\Memory\Memory.hpp" />
+    <ClInclude Include="src\Memory\Shellcode.hpp" />
     <ClInclude Include="src\Misc\Logger.hpp" />
     <ClInclude Include="src\Game.hpp" />
     <ClInclude Include="src\Overlay\Overlay.hpp" />
