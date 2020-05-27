@@ -108,6 +108,10 @@ void Renderer::Update()
 
 	if (!G.player_manager)
 		return;
+	/*uintptr_t game_renderer = M.Read<uintptr_t>(0x142672378);
+	uintptr_t render_view = M.Read<uintptr_t>(game_renderer + 0x60);
+
+	D3DXMATRIX matrix_inverse = M.Read<D3DXMATRIX>(render_view + 0x02E0);*/
 
 	uintptr_t local_player_ptr = M.Read<uintptr_t>(G.player_manager + Offsets::LOCAL_PLAYER_ARRAY);
 
@@ -118,7 +122,7 @@ void Renderer::Update()
 
 	render_mutex.lock();
 
-	for (unsigned int idx = 0; idx <= 64; ++idx)
+	for (unsigned int idx = 0; idx <= 70; ++idx)
 	{
 		uintptr_t current_player = M.Read<uintptr_t>(players + (idx * 0x8));
 
@@ -129,7 +133,6 @@ void Renderer::Update()
 
 		float yaw = M.Read<float>(local_soldier + 0x04D8);
 		float pitch = M.Read<float>(local_soldier + 0x04DC);
-		//Logger::Print(" YAW %f, PITCH %f ", yaw, pitch);
 
 		uintptr_t comp_local = M.Read<uintptr_t>(local_soldier + 0x0140);
 
@@ -159,11 +162,9 @@ void Renderer::Update()
 
 		bool is_visible = !occluded;
 
-		if (local_team_id != player_team_id)
-		{
-			player_t pinsert { current_player, current_soldier, player_origin, player_head, is_visible, is_team, health, PlayerStuff::GetPlayersName(current_player), PlayerStuff::GetSoldiersWeapon(current_soldier) };
-			player_list.insert_or_assign(current_player, pinsert);
-		}
+
+		player_t pinsert { current_player, current_soldier, player_origin, player_head, is_visible, is_team, health, PlayerStuff::GetPlayersName(current_player), PlayerStuff::GetSoldiersWeapon(current_soldier) };
+		player_list.insert_or_assign(current_player, pinsert);
 
 		G.local_player.health = health_local;
 		G.local_player.origin = local_player_origin;
@@ -177,19 +178,12 @@ void Renderer::Update()
 
 }
 
-bool Renderer::BitBlt()
+float CalcDistance(D3DXVECTOR3 enemy_pos, D3DXVECTOR3 localplayer_pos)
 {
-	Shellcode shell;
-	shell.push_back({ 0x68 }); shell.push_back(M.module_address + 0x22b0);
-	shell.push_back({ 0x48, 0xC7, 0xC0, 0x00, 0x00, 0x00, 0x00, 0xC3 });
+	float x = enemy_pos.x - localplayer_pos.x;
+	float z = enemy_pos.z - localplayer_pos.z;
 
-	uintptr_t alloc_code = reinterpret_cast<uintptr_t>(VirtualAllocEx(M.BF4_HANDLE, 0, shell.shellcode.size(), MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE));
-
-	if (!alloc_code)
-		return false;
-
-	if (M.ReadAddressRaw(alloc_code, shell.shellcode.data(), shell.shellcode.size()))
-		return true;
+	return sqrt((x * x) + (z * z));
 }
 
 void Renderer::RenderLoop(Direct2DOverlay * o)
@@ -220,7 +214,7 @@ void Renderer::RenderLoop(Direct2DOverlay * o)
 			if (player.player == G.local_player.player || !player.player || !player.soldier || !ptr || player.held_weapon == "" || player.name == "")
 				continue;
 
-			if (player.health <= 0.01f || player.is_team)
+			if (player.health <= 0.01f || player.is_team || G.local_player.health <= 0.1f)
 				continue;
 
 			/* draw players*/
@@ -231,16 +225,20 @@ void Renderer::RenderLoop(Direct2DOverlay * o)
 			if (!Math::WorldToScreenNew(&player.origin, &origin_screen) && !Math::WorldToScreenNew(&Math::GetBone(player.soldier, HEAD), &head_screen))
 				continue;
 
-			float red = 255 - (player.health * 2.55f);
-			float green = (player.health * 2.55f);
+			//float red = 255 - (player.health * 2.55f);
+			//float green = (player.health * 2.55f);
 
 			D2D1::ColorF render_colour = player.is_visible ? D2D1::ColorF(255, 0, 0, 255) : D2D1::ColorF(255, 255, 255, 255);
 			
+			float distance = CalcDistance(player.origin, G.local_player.origin);
+			std::string distance_str = std::to_string(static_cast<int>(distance)) + "m";
+			overlay->DrawBoxWithString(M.StringToWString(distance_str), false, { origin_screen.x, origin_screen.y + 8 }, 7, { 255,255,255,255 }, ESP_FONT, { 20, 20, 20, 255 });
+			
 			/* Soldier Info */
-			std::stringstream ss;
-			ss << player.name << " [" << player.held_weapon << "]";
-			overlay->DrawBoxWithString(M.StringToWString(ss.str()), 0, { origin_screen.x , origin_screen.y + 8 }, 7, { 255, 255, 255,255 }, ESP_FONT, { 12, 12, 12, 255 });
-			overlay->DrawBoxWithString(std::to_wstring(static_cast<int>(player.health)), 0, { origin_screen.x + 2, origin_screen.y + 19 }, 6, { red, green, 0, 255 }, ESP_FONT, { 12, 12, 12, 255 });
+			//std::stringstream ss;
+			//ss << player.name << " [" << player.held_weapon << "]";
+			//overlay->DrawBoxWithString(M.StringToWString(ss.str()), 0, { origin_screen.x , origin_screen.y + 8 }, 7, { 255, 255, 255,255 }, ESP_FONT, { 12, 12, 12, 255 });
+			//overlay->DrawBoxWithString(std::to_wstring(static_cast<int>(player.health)), 0, { origin_screen.x + 2, origin_screen.y + 19 }, 6, { red, green, 0, 255 }, ESP_FONT, { 12, 12, 12, 255 });
 			
 			RenderBones(player.soldier, render_colour);
 		}

@@ -85,7 +85,7 @@ bool Direct2DOverlay::Initialize(unsigned int process_id, std::string overlayWin
 
 			if (RegisterClassEx(&wClass))
 			{
-				RECT rekt = { 0,0,200,200 };
+				RECT rekt = { 0,0, 200,200 };
 				AdjustWindowRectEx(&rekt, WS_POPUP, FALSE, WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_COMPOSITED);
 
 				this->overlayWindow = CreateWindowEx(WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOPMOST, "pimpov", overlayWindowName.c_str(), WS_POPUP, CW_USEDEFAULT, CW_USEDEFAULT, rekt.right - rekt.left, rekt.bottom - rekt.top, NULL, NULL, this->appInstance, NULL);

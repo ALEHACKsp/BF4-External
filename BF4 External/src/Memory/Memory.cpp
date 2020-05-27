@@ -29,10 +29,12 @@ bool Memory::Attach()
 	this->BF4_HANDLE = handle;
 
 	this->module_address = GetModuleBase("bf4.exe");
+	this->gdi32_address = GetModuleBase("GDI32.dll");
 
 	
 	Logger::Print("BF4.exe ID [%d]", this->process_id);
 	Logger::Print("BF4.exe Module Base [0x%llX]", this->module_address);
+	Logger::Print("GDI32.dll Module Base [0x%llX]", this->module_address);
 	return true;
 
 }

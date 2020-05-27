@@ -1,5 +1,4 @@
 #pragma once
-#include "Shellcode.hpp"
 #include "Memory.hpp"
 
 class Shellcode

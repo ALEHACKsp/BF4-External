@@ -22,6 +22,6 @@ namespace Renderer
 	extern void DrawLocalPlayer();
 	extern void DrawLocalRadar();
 	extern void Update();
-	extern bool BitBlt();
+	//extern bool BitBlt();
 	extern void RenderLoop(Direct2DOverlay* overlay);
 }

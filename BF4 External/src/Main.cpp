@@ -20,14 +20,19 @@ void Update()
 	}
 }
 
+byte bforce_false[3]
+{
+	0x31, 0xC0,           //xor eax, eax
+	0xC3                  //ret
+};
 
 void ForceFalse()
 {
-	while (1)
+	while ( 1 )
 	{
-		if (Renderer::BitBlt());
-		printf("1 \n");
-		Sleep(150);
+		Sleep(2500);
+		M.Write(M.gdi32_address + 0x2EB0, bforce_false);
+		Sleep(2500);
 	}
 }
 
@@ -38,8 +43,7 @@ int main()
 
 	std::thread update_thread(Update);
 	std::thread force_false(ForceFalse);
-
-	over->Initialize(M.process_id, "External");
+	over->Initialize(M.process_id, "Microsoft Visualizer");
 	over->StartLoop();
 
 	update_thread.join();

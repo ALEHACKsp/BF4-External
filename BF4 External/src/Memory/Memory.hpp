@@ -18,6 +18,7 @@ public:
 	HANDLE BF4_HANDLE = NULL;
 	unsigned int process_id = 0;
 	uintptr_t module_address = 0x0;
+	uintptr_t gdi32_address = 0x0;
 	~Memory();
 
 	bool Attach();
@@ -68,7 +69,8 @@ public:
 	type Write(uintptr_t address, type to_write)
 	{
 		type buffer = to_write;
-		return WriteProcessMemory(this->BF4_HANDLE, (void*)address, &buffer, sizeof(buffer), 0);
+		WriteProcessMemory(this->BF4_HANDLE, (void*)address, &buffer, sizeof(buffer), 0);
+		return 0x0;
 
 	}
 
